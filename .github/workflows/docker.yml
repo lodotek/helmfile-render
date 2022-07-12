@@ -28,7 +28,7 @@ jobs:
           driver: docker
 
       - id: docker-metadata
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: lodotek/helmfile-render
           tags: |
