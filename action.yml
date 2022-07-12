@@ -1,4 +1,4 @@
-name: Helmfile Render Manifests
+name: helmfile-render
 author: Chris Montes
 description: Render kubernetes manifests defined using helmfile
 
