@@ -1,0 +1,41 @@
+name: Helmfile Render Manifests
+author: Chris Montes
+description: Render kubernetes manifests defined using helmfile
+
+inputs:
+  app:
+    description: The app to render manifests for.
+    required: true
+  targets:
+    description: Render targets.
+    required: false
+  sync:
+    description: Sync rendered manifests to out-dir
+    required: false
+    default: "true"
+  app-dir:
+    description: The base directory for app deployment config
+    required: false
+  out-dir:
+    description: The directory to sync rendered manifests to relative to project root
+    required: false
+  skip-deps:
+    description: Set to true to skip building dependencies (`helmfile dep`)
+    required: false
+    default: "false"
+  skip-crds:
+    description: Set to true to not render CRDs
+    required: false
+    default: "false"
+
+outputs:
+  rendered:
+    description: A semicolon separated list of apps rendered with chart release versions
+
+runs:
+  using: docker
+  image: image/action/Dockerfile
+
+branding:
+  icon: printer
+  color: orange

@@ -1,0 +1,7 @@
+repositories:
+  - name: k8s-dashboard
+    url: https://kubernetes.github.io/dashboard
+
+releases:
+  - name: dashboard
+    chart: k8s-dashboard/kubernetes-dashboard

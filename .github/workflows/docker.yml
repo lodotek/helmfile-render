@@ -1,0 +1,81 @@
+name: Docker
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+  push:
+    branches: [main]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  pull_request:
+    branches: [main]
+
+env:
+  HELMFILE_RENDER_TEST_IMAGE: lodotek/helmfile-render:gha
+  HELMFILE_RENDER_ACTION_TEST_IMAGE: lodotek/helmfile-render-action:gha
+
+jobs:
+  publish:
+    name: runner / publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: docker/setup-qemu-action@v1
+      - uses: docker/setup-buildx-action@v1
+        with:
+          driver: docker
+
+      - id: docker-metadata
+        uses: docker/metadata-action@v3
+        with:
+          images: lodotek/helmfile-render
+          tags: |
+            type=schedule
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - id: build-helmfile-render-image
+        uses: docker/build-push-action@v2
+        with:
+          load: true
+          context: image/base
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+          tags: ${{ env.HELMFILE_RENDER_TEST_IMAGE }}
+
+      - uses: docker/build-push-action@v2
+        with:
+          load: true
+          context: image/action
+          tags: ${{ env.HELMFILE_RENDER_ACTION_TEST_IMAGE }}
+          build-args: |
+            base_image=${{ env.HELMFILE_RENDER_TEST_IMAGE }}
+
+      - id: test
+        run: |
+          docker run --rm \
+            --volume=$PWD:/workspace \
+            --env=INPUT_SYNC=true \
+            --env=INPUT_DEBUG=true \
+            --env=INPUT_PROJECT_DIR=/workspace \
+            --env=INPUT_TARGETS=local \
+            --env=INPUT_APP=dashboard \
+            --env=INPUT_APP_DIR=tests/apps/dashboard \
+            --env=INPUT_OUT_DIR=tests/apps/dashboard/out \
+            ${{ env.HELMFILE_RENDER_ACTION_TEST_IMAGE }}
+
+      - uses: docker/build-push-action@v2
+        if: github.event_name != 'pull_request'
+        with:
+          context: image/base
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.docker-metadata.outputs.tags }}
+          labels: ${{ steps.docker-metadata.outputs.labels }}
